@@ -1,4 +1,6 @@
 # dicer
+peptide chopper/dicer
+
 this tool is designed to:
 
 - Clean up FASTA sequences. Copy a FASTA sequence from an NCBI web page and paste it into the box labeled "FASTA Sequence" in the Inputs section, leaving all other fields blank. Press the “Chop” button to remove all spaces and line returns from the FASTA sequence. The cleaned-up sequence is displayed in the first (top) box in the Results section. Press the “Copy” button located next to the results box to place the contents on your clipboard.
