@@ -1,0 +1,284 @@
+
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <title>
+        Disco Dicer
+    </title>
+
+
+	<link rel="stylesheet" href="https://unpkg.com/chota@latest">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+ 
+<body id="top">
+	<div class="container">
+
+	<h1>Disco Dicer: Protein chopper/dicer</h1>
+
+	<div class="row">
+	 
+		<div class="card">
+			<header>
+				<h2>Instructions:</h2>
+			</header>
+			<ol>
+				<li>Paste the protein's FASTA sequence into the appropriate box.</br>
+				<li>Enter the residue numbers at peptide/aa start and end, if applicable (these fields may be left blank).</br>
+				<li>Enter the offset from the accession protein sequence, if applicable (this field may be left blank).</br>
+			</ol>
+			Then...
+			<ol>
+
+				<li>Press "Chop" to retrieve the peptide and its adjusted amino acid range.</br>
+				<li>Press "Dice" to also retrieve the peptide as a discontinuous peptide sequence.</br>
+				<li>Input new peptide start/end values and press "Dice" again to concatenate another peptide/amino acid to the aa sequence.</br>
+				<li>Press "Copy" to place data on the clipboard.</br>
+				<li>Press "CLEAR" to clear the output fields.</br>
+			</ol>
+			Notes
+			<ul>
+				<li>If peptide start & end values are left blank, Disco Dicer will chop/dice the entire FASTA sequence.</br>
+				<li>FASTA sequence numbering starts at 1.</br>
+			</ul>
+		</div>
+	</div>
+
+	<div class="row">
+		<fieldset id="inputFields">
+			<legend>Inputs</legend>
+			<textarea placeholder="FASTA Sequence" id="inputId" rows=8 cols=90></textarea>
+			<p class="grouped">
+				<input type="text" placeholder="Peptide Start" id="startVal">
+				<input type="text" placeholder="Peptide End" id="stopVal"> 
+				<input type="text" placeholder="Accession Offset" id="offSet">  
+			</p>		
+
+			<button class="button default" onclick="chopPeptide()">Chop</button>
+			<button class="button secondary" onclick="dicePeptide()">Dice</button></br>
+		</fieldset>
+	</div>
+	<div class="row">
+		<fieldset id="resultFields">
+			<legend>Results</legend>
+
+			<p class="grouped">
+				<input type="text" placeholder="Chop Results" id="results1" size=80>
+				<button class="button outline" onclick="copyToClipboard('results1')">Copy</button></br>
+			</p>		
+			<p class="grouped">
+				<input type="text" placeholder="Adjusted AA Span" id="results2" size=80>
+				<button class="button outline" onclick="copyToClipboard('results2')">Copy</button></br>
+			</p>	
+			<p class="grouped">
+				<textarea placeholder="Dice Results Without Offset" id="results3" rows=2 cols=90></textarea>
+				<button class="button outline" onclick="copyToClipboard('results3')">Copy</button></br>
+			</p>		
+
+			<p class="grouped">
+				<textarea placeholder="Dice Results With Offset" id="results4" rows=2 cols=90></textarea>
+				<button class="button outline" onclick="copyToClipboard('results4')">Copy</button></br>
+			</p>
+
+			<button class="button outline dark" onclick="clearFields()">CLEAR</button></br>
+		</fieldset>
+
+	</div>
+    <script> 	
+    
+	let offSet = "";
+	let startVal = "";
+	let stopVal = "";
+	// results, also used for errors
+	let results1 = document.getElementById("results1");
+	// other results
+	let results2 =  document.getElementById("results2");
+	let results3 =  document.getElementById("results3");
+	let results4 =  document.getElementById("results4");
+	
+	
+	    function chopPeptide() {       	
+        	// Select the input element and get its value 
+        	let input = document.getElementById("inputId");
+        	let inputString = input.value;
+            // remove spaces
+            inputString = inputString.split(" ").join("");
+            // remove line breaks
+            inputString = inputString.replace(/\r?\n|\r/g, "");
+            // set the new string value
+            input.value = inputString;
+            // get stop, start, and offset values, and set them as ints
+            startVal = document.getElementById("startVal").value;
+            if (startVal.length==0){
+            	startVal = "1";
+            }
+            startVal = parseInt(startVal);
+            // if the user didn't enter a stop value, chop the whole string
+            stopVal = document.getElementById("stopVal").value;
+            if (stopVal.length==0){
+            	stopVal = inputString.length;
+            }
+            stopVal = parseInt(stopVal);
+            offSet = document.getElementById("offSet").value;
+            if (offSet.length==0){ 
+            	offSet = "0";
+            }
+            offSet = parseInt(offSet);
+       
+            // failure conditions & errors
+            if (startVal <= 0) {
+            	results1.value = "If present, Peptide Start/End must be an integer > 0.";
+            	return
+            }
+            if (isNaN(startVal)==true) {
+            	results1.value = "If present, Peptide Start/End must be an integer >0 (can be left blank).";
+            	return
+            }
+            if (stopVal < 0) {
+            	results1.value = "If present, Peptide Start/End must be an integer > 0.";
+            	return
+            }
+            if (isNaN(stopVal)==true) {
+            	results1.value = "If present, Peptide Start/End must be an integer >0 (can be left blank).";
+            	return
+            }
+            if (stopVal < startVal) {
+            	results1.value = "The Peptide End position must be greater than or equal to the Start.";
+            	return
+            }
+			if (isNaN(offSet)==true) {
+            	results1.value = "Accession offset must be 0 or a number >0 (can be left blank).";
+            	return
+            }
+            if (input.length == 0) {
+            	results1.value = "Please enter a FASTA sequence.";
+            	return
+            }
+            let pepChop = inputString.slice((startVal-1), (stopVal));
+
+            // calculate the new start/stop values
+            let newStart = (startVal-offSet);
+ 			let newEnd = (stopVal-offSet);
+ 			// if there is an offset, calculate the content of the string at that offset
+            if (offSet != 0){
+ 				pepChop = inputString.slice((newStart-1), (newEnd));
+ 			}
+			// report the results   
+            results1.value = (pepChop);
+			results2.value = (newStart + " - " + newEnd);
+        }
+        
+        
+        function dicePeptide() {
+        	// Select the input element and get its value 
+        	let input = document.getElementById("inputId");
+        	let inputString = input.value;
+            // remove spaces
+            inputString = inputString.split(" ").join("");
+            // remove line breaks
+            inputString = inputString.replace(/\r?\n|\r/g, "");
+            // set the new string value
+            input.value = inputString;
+            // get stop, start, and offset values, and set them as ints
+            startVal = document.getElementById("startVal").value;
+            if (startVal.length==0){
+            	startVal = "1";
+            }
+            startVal = parseInt(startVal);
+            // if the user didn't enter a stop value, dice the whole string
+            stopVal = document.getElementById("stopVal").value;
+            if (stopVal.length==0){
+            	stopVal = inputString.length;
+            }
+            stopVal = parseInt(stopVal);
+            offSet = document.getElementById("offSet").value;
+            if (offSet.length==0){ 
+            	offSet = "0";
+            }
+            offSet = parseInt(offSet);
+            // failure conditions & errors
+            if (startVal <= 0) {
+            	results1.value = "If present, Peptide Start/End must be an integer > 0.";
+            	return
+            }
+            if (isNaN(startVal)==true) {
+            	results1.value = "If present, Peptide Start/End must be an integer >0 (can be left blank).";
+            	return
+            }
+            if (stopVal < 0) {
+            	results1.value = "If present, Peptide Start/End must be an integer >= 0.";
+            	return
+            }
+            if (isNaN(stopVal)==true) {
+            	results1.value = "If present, Peptide Start/End must be an integer >0 (can be left blank).";
+            	return
+            }
+            if (stopVal < startVal) {
+            	results1.value = "The Peptide End position must be greater than or equal to the Start.";
+            	return
+            }
+			if (isNaN(offSet)==true) {
+            	results1.value = "Accession offset must be 0 or a number >0 (can be left blank).";
+            	return
+            }
+            if (input.length == 0) {
+            	results1.value = "Please enter a FASTA sequence.";
+            	return
+            }
+            let pepChop = inputString.slice((startVal-1), (stopVal));
+
+            // calculate the new start/stop values
+            let newStart = (startVal-offSet);
+ 			let newEnd = (stopVal-offSet);
+ 			// if there is an offset, calculate the content of the string at that offset
+            if (offSet != 0){
+ 				pepChop = inputString.slice((newStart-1), (newEnd));
+ 			}
+			// report the results of peptide Chop   
+            results1.value = (pepChop);
+			results2.value = (newStart + " - " + newEnd);
+            // iterate through the resulting peptide to retrieve standard amino acid annotation
+            for (i=0; i<(pepChop.length); i++) {
+            	// display the results
+            	let results3 =  document.getElementById("results3");
+            	let discoString1 = pepChop.charAt(i) + startVal + ", " ;
+            	results3.value += discoString1;
+            	let results4 =  document.getElementById("results4");
+            	let discoString2 = pepChop.charAt(i) + newStart + ", " ;
+            	results4.value += discoString2;
+            	// advance to next character
+            	startVal += 1;
+            	newStart += 1;
+            }
+            
+		}
+		
+		   
+		function clearFields() { 
+			results1.value = "";  
+		  	results2.value = "";
+		  	results3.value = "";
+		  	results4.value = ""; 
+		  	startVal = "";
+		  	stopVal = "";
+		  	offSet = "";
+		  
+		}
+		
+		function copyToClipboard(id) {
+			var r = document.getElementById(id);
+			if (r) {
+				navigator.clipboard.writeText(r.value);
+			}
+		}
+		
+    </script>
+   
+
+</body>
+ 
+</html>
+
